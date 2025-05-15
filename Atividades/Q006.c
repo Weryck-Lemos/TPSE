@@ -24,6 +24,6 @@ unsigned int rotateBits( unsigned int num, int n, int ini, int fim, int d){
 
 int main(){
 
-    int num
+    int num;
 
 }
