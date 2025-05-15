@@ -18,7 +18,6 @@ int count_bit( int n, int m){
     return ans;
 }
 
-
 int main(){
     int a = 0b11111111;
     int b = 0b11010001;
