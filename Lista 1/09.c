@@ -1,9 +1,9 @@
 #include <stdio.h>
-#define IS_DIGIT(x) ((x>=0 && x<=9) ? 1 : 0) 
+#define IS_DIGIT(x) ((x>=0 && x<=9) ? "TRUE" : "FALSE") 
 
 int main(){
     int x;
     scanf("%d", &x);
 
-    printf("%d\n", IS_DIGIT(x));
+    printf("%s\n", IS_DIGIT(x));
 }
