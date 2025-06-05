@@ -41,13 +41,13 @@ static void ledToggle();
  */
 int _main(void){
 
-	flagBlink=0;	//init flag
+	flagBlink=0;
   	
-	/* Configure the green LED control pin. */
+
   	ledInit();
   
   	while (1){
-    	/* Change the state of the green LED. */
+
     	ledToggle();
 		delay();
 		ledToggle();
@@ -133,9 +133,7 @@ void ledToggle() {
 
 
 
-
-
-
-
-
-
+//setenv serverip 10.4.1.1
+//setenv ipaddr  10.4.1.2
+//ping 10.4.1.1
+//tftp 0x80000000 appled3.bin

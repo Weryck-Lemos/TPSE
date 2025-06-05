@@ -1,103 +1,118 @@
-
 #include "hw_types.h"
 #include "soc_AM335x.h"
+#include <stdbool.h>
 
 /*****************************************************************************
-**                DEFINIÇÕES DE MACROS INTERNAS
+** DEFINIÇÕES DE MACROS
 *****************************************************************************/
-#define CM_PER_GPIO1                                0xAC
-#define CM_PER_GPIO1_CLKCTRL_MODULEMODE_ENABLE      (0x2u)
-#define CM_PER_GPIO1_CLKCTRL_OPTFCLKEN_GPIO_1_GDBCLK (0x00040000u)
+#define GPIO1_BASE SOC_GPIO_1_REGS
 
-#define CM_conf_gpmc_be1n 0x0878  // GPIO1_28 (P9_12)
+#define CM_PER_GPIO1_CLKCTRL     0xAC
+#define MODULEMODE_ENABLE        0x2u
+
 #define GPIO_OE           0x134
 #define GPIO_SETDATAOUT   0x194
 #define GPIO_CLEARDATAOUT 0x190
 #define GPIO_DATAIN       0x138
 
-// LEDs
-#define LED0 (1 << 21)  // USR0
-#define LED1 (1 << 22)  // USR1
-#define LED2 (1 << 23)  // USR2
-#define LED3 (1 << 24)  // USR3
-#define LED_EXT (1 << 28) // GPIO1_28 (P9_12)
-#define LEDS_ALL (LED0 | LED1 | LED2 | LED3 | LED_EXT)
+// LEDs USR0 a USR3
+#define LED0 (1 << 21)
+#define LED1 (1 << 22)
+#define LED2 (1 << 23)
+#define LED3 (1 << 24)
+#define LEDS_ALL (LED0 | LED1 | LED2 | LED3)
 
-#define BUTTON_PIN 16  // P9_15
-#define BUTTON_MASK (1 << BUTTON_PIN)
+// Novos botões: GPIO1_13 (P8_11) e GPIO1_12 (P8_12)
+#define BUTTON_A_PIN       13
+#define BUTTON_A_MASK      (1 << BUTTON_A_PIN)
+#define BUTTON_B_PIN       12
+#define BUTTON_B_MASK      (1 << BUTTON_B_PIN)
+
+// Pull-up ativado com modo 7
+#define MUX_P8_11 0x834  // GPIO1_13
+#define MUX_P8_12 0x830  // GPIO1_12
+#define MUX_USR0  0x824
+#define MUX_USR1  0x828
+#define MUX_USR2  0x82C
+#define MUX_USR3  0x830
 
 /*****************************************************************************
-**                VARIÁVEIS GLOBAIS
+** VARIÁVEIS GLOBAIS
 *****************************************************************************/
-unsigned int leds_on = 1;
+unsigned int delay = 1000000;  // valor inicial
+const unsigned int delay_min = 100000;
+const unsigned int delay_max = 2000000;
+const unsigned int step = 100000;
 
 /*****************************************************************************
-**                PROTÓTIPOS
+** PROTÓTIPOS
 *****************************************************************************/
-static void ledInit();
-static void checkButtonAndToggleLEDs();
+static void setup();
+static void loop();
+static bool is_button_pressed(unsigned int pin_mask);
 
 /*****************************************************************************
-**                MAIN
+** FUNÇÃO PRINCIPAL
 *****************************************************************************/
 int _main(void) {
-    ledInit();
-
-    // Inicia com LEDs ligados
-    HWREG(SOC_GPIO_1_REGS + GPIO_SETDATAOUT) = LEDS_ALL;
-
+    setup();
     while (1) {
-        checkButtonAndToggleLEDs();
+        loop();
     }
-
     return 0;
 }
 
 /*****************************************************************************
-**                Função de inicialização dos LEDs e botão
+** CONFIGURAÇÕES INICIAIS
 *****************************************************************************/
-void ledInit() {
+static void setup() {
     unsigned int val;
 
-    // Ativa o clock do GPIO1
-    HWREG(SOC_CM_PER_REGS + CM_PER_GPIO1) |=
-        CM_PER_GPIO1_CLKCTRL_OPTFCLKEN_GPIO_1_GDBCLK |
-        CM_PER_GPIO1_CLKCTRL_MODULEMODE_ENABLE;
+    // Habilita clock do GPIO1
+    HWREG(SOC_CM_PER_REGS + CM_PER_GPIO1_CLKCTRL) = MODULEMODE_ENABLE;
+    while ((HWREG(SOC_CM_PER_REGS + CM_PER_GPIO1_CLKCTRL) & 0x3) != MODULEMODE_ENABLE);
 
-    // Configura os muxes dos pinos como GPIO (modo 7)
-    HWREG(SOC_CONTROL_REGS + CM_conf_gpmc_be1n) = 7;   // LED externo
-    HWREG(SOC_CONTROL_REGS + 0x824) = 7;               // USR0 - GPIO1_21
-    HWREG(SOC_CONTROL_REGS + 0x828) = 7;               // USR1 - GPIO1_22
-    HWREG(SOC_CONTROL_REGS + 0x82C) = 7;               // USR2 - GPIO1_23
-    HWREG(SOC_CONTROL_REGS + 0x830) = 7;               // USR3 - GPIO1_24
+    HWREG(SOC_CONTROL_REGS + MUX_USR0)  = 7; // USR0
+    HWREG(SOC_CONTROL_REGS + MUX_USR1)  = 7; // USR1
+    HWREG(SOC_CONTROL_REGS + MUX_USR2)  = 7; // USR2
+    HWREG(SOC_CONTROL_REGS + MUX_USR3)  = 7; // USR3
+    HWREG(SOC_CONTROL_REGS + MUX_P8_11) = 7; // GPIO1_13 (P8_11)
+    HWREG(SOC_CONTROL_REGS + MUX_P8_12) = 7; // GPIO1_12 (P8_12)
 
-    // Configura LEDs como saída
-    val = HWREG(SOC_GPIO_1_REGS + GPIO_OE);
-    val &= ~LEDS_ALL;  // 0 = saída
-    HWREG(SOC_GPIO_1_REGS + GPIO_OE) = val;
+    // leds saída bit = 0
+    val = HWREG(GPIO1_BASE + GPIO_OE);
+    val &= ~(LED0 | LED1 | LED2 | LED3);
+    HWREG(GPIO1_BASE + GPIO_OE) = val;
 
-    // Configura botão (GPIO1_17) como entrada
-    val = HWREG(SOC_GPIO_1_REGS + GPIO_OE);
-    val |= BUTTON_MASK;  // 1 = entrada
-    HWREG(SOC_GPIO_1_REGS + GPIO_OE) = val;
+    // botões entrada bit = 1
+    val = HWREG(GPIO1_BASE + GPIO_OE);
+    val |= BUTTON_A_MASK | BUTTON_B_MASK;
+    HWREG(GPIO1_BASE + GPIO_OE) = val;
 }
 
 /*****************************************************************************
-**                Verifica o botão e inverte LEDs
+** LOOP PRINCIPAL
 *****************************************************************************/
-void checkButtonAndToggleLEDs() {
-    unsigned int button = HWREG(SOC_GPIO_1_REGS + GPIO_DATAIN) & BUTTON_MASK;
+static void loop() {
+    // Acende LEDs
+    HWREG(GPIO1_BASE + GPIO_SETDATAOUT) = LEDS_ALL;
+    for (volatile unsigned int i = 0; i < delay; i++);
 
-    if (!button) {  // botão pressionado (nível baixo)
-        if (leds_on) {
-            HWREG(SOC_GPIO_1_REGS + GPIO_CLEARDATAOUT) = LEDS_ALL;
-        } else {
-            HWREG(SOC_GPIO_1_REGS + GPIO_SETDATAOUT) = LEDS_ALL;
-        }
-        leds_on = !leds_on;
+    // Apaga LEDs
+    HWREG(GPIO1_BASE + GPIO_CLEARDATAOUT) = LEDS_ALL;
+    for (volatile unsigned int i = 0; i < delay; i++);
 
-        // debounce + espera soltar
-        for (volatile int i = 0; i < 100000; i++);
-        while (!(HWREG(SOC_GPIO_1_REGS + GPIO_DATAIN) & BUTTON_MASK));
+    if (!is_button_pressed(BUTTON_A_MASK)) {
+        if (delay > delay_min) delay -= step;
+        for (volatile int d = 0; d < 100000; d++); // debounce
     }
+
+    if (!is_button_pressed(BUTTON_B_MASK)) {
+        if (delay < delay_max) delay += step;
+        for (volatile int d = 0; d < 100000; d++);
+    }
+}
+
+static bool is_button_pressed(unsigned int pin_mask) {
+    return !(HWREG(GPIO1_BASE + GPIO_DATAIN) & pin_mask);
 }
