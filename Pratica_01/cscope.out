@@ -1,4 +1,4 @@
-cscope 15 $HOME/UFC/disciplinas/QXD0149/lab/pratica_01               0000006803
+cscope 15 $HOME/UFC/disciplinas/QXD0149/lab/pratica_01_2               0000006921
 	@inc/hw_types.h
 
 42 #i‚de‡
@@ -861,65 +861,99 @@ __˝lu•lus
 
 	)
 
-34 
-	#CM_c⁄f_gpmc_a6
- 0x0818
-
-	)
-
 35 
-	#CM_c⁄f_gpmc_a7
- 0x081C
-
-	)
-
-36 
-	#CM_c⁄f_gpmc_a8
- 0x0820
-
-	)
-
-37 
-	#CM_c⁄f_gpmc_ad12
- 0x0830
-
-	)
-
-42 
 	#GPIO_OE
  0x134
 
 	)
 
-43 
+36 
 	#GPIO_CLEARDATAOUT
  0x190
 
 	)
 
-44 
+37 
 	#GPIO_SETDATAOUT
  0x194
 
 	)
 
-53 
+40 
+	gÊagBlök
+;
+
+45 
+dñay
+();
+
+46 
+ÀdInô
+();
+
+47 
+ÀdToggÀ
+();
+
+55 
 	$_maö
 (){
 
-55 
+57 
 ÊagBlök
 =0;
 
-56 
-vÆ_ãmp
-;
+60 
+	`ÀdInô
+();
 
-57 vﬁ©ûê
+64 
+	`ÀdToggÀ
+();
+
+65 
+	`dñay
+();
+
+66 
+	`ÀdToggÀ
+();
+
+67 
+	`dñay
+();
+
+71 
+	}
+}
+
+79 
+	$dñay
+(){
+
+80 vﬁ©ûê
 ø
 ;
 
-63 
+81 
+ø
+ = 0;Ñ®< 
+TIME
+;Ña ++);
+
+82 
+	}
+}
+
+91 
+	$ÀdInô
+( ){
+
+93 
+vÆ_ãmp
+;
+
+97 
 	`HWREG
 (
 SOC_CM_PER_REGS
@@ -931,7 +965,7 @@ CM_PER_GPIO1_CLKCTRL_OPTFCLKEN_GPIO_1_GDBCLK
 CM_PER_GPIO1_CLKCTRL_MODULEMODE_ENABLE
 ;
 
-68 
+102 
 	`HWREG
 (
 SOC_CONTROL_REGS
@@ -939,7 +973,7 @@ SOC_CONTROL_REGS
 CM_c⁄f_gpmc_a5
 ) |= 7;
 
-73 
+107 
 vÆ_ãmp
  = 
 	`HWREG
@@ -949,11 +983,11 @@ SOC_GPIO_1_REGS
 GPIO_OE
 );
 
-74 
+108 
 vÆ_ãmp
  &= ~(1<<21);
 
-75 
+110 
 	`HWREG
 (
 SOC_GPIO_1_REGS
@@ -963,39 +997,41 @@ GPIO_OE
 vÆ_ãmp
 ;
 
-79 
+112 
+	}
+}
+
+122 
+	$ÀdToggÀ
+( ){
+
+124 
 ÊagBlök
  ^
 TOGGLE
 ;
 
-81 if(
+126 if(
 ÊagBlök
-){
+)
 
-82 
+127 
 	`HWREG
 (
 SOC_GPIO_1_REGS
 +
 GPIO_SETDATAOUT
-) = 1<<21;
+) = (1<<21);
 
-84 
+129 
 	`HWREG
 (
 SOC_GPIO_1_REGS
 +
 GPIO_CLEARDATAOUT
-) = 1<<21;
+) = (1<<21);
 
-88 
-ø
- = 0;Ñ®< 
-TIME
-;Ña ++);
-
-92 
+131 
 	}
 }
 

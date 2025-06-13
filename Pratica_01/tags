@@ -8,15 +8,11 @@ CM_PER_GPIO1	src/main.c	28;"	d	file:
 CM_PER_GPIO1_CLKCTRL_MODULEMODE_ENABLE	src/main.c	29;"	d	file:
 CM_PER_GPIO1_CLKCTRL_OPTFCLKEN_GPIO_1_GDBCLK	src/main.c	30;"	d	file:
 CM_conf_gpmc_a5	src/main.c	33;"	d	file:
-CM_conf_gpmc_a6	src/main.c	34;"	d	file:
-CM_conf_gpmc_a7	src/main.c	35;"	d	file:
-CM_conf_gpmc_a8	src/main.c	36;"	d	file:
-CM_conf_gpmc_ad12	src/main.c	37;"	d	file:
 CM_conf_gpmc_ben1	src/main.c	32;"	d	file:
 FALSE	inc/hw_types.h	83;"	d
-GPIO_CLEARDATAOUT	src/main.c	43;"	d	file:
-GPIO_OE	src/main.c	42;"	d	file:
-GPIO_SETDATAOUT	src/main.c	44;"	d	file:
+GPIO_CLEARDATAOUT	src/main.c	36;"	d	file:
+GPIO_OE	src/main.c	35;"	d	file:
+GPIO_SETDATAOUT	src/main.c	37;"	d	file:
 HWREG	inc/hw_types.h	66;"	d
 HWREGB	inc/hw_types.h	70;"	d
 HWREGBITB	inc/hw_types.h	78;"	d
@@ -125,6 +121,13 @@ _HW_TYPES_H_	inc/hw_types.h	43;"	d
 _SOC_AM33XX_H_	inc/soc_AM335x.h	45;"	d
 _main	src/main.c	/^int _main(void){$/;"	f	signature:(void)
 bool	inc/hw_types.h	/^}bool;$/;"	t	typeref:enum:__anon1
+delay	src/main.c	/^static void delay();$/;"	p	file:
+delay	src/main.c	/^static void delay(){$/;"	f	file:
 false	inc/hw_types.h	/^   false = 0$/;"	e	enum:__anon1
+flagBlink	src/main.c	/^unsigned int flagBlink;$/;"	v
+ledInit	src/main.c	/^static void ledInit();$/;"	p	file:
+ledInit	src/main.c	/^void ledInit( ){$/;"	f
+ledToggle	src/main.c	/^static void ledToggle();$/;"	p	file:
+ledToggle	src/main.c	/^void ledToggle( ){$/;"	f
 tBoolean	inc/hw_types.h	/^typedef unsigned char tBoolean;$/;"	t
 true	inc/hw_types.h	/^   true = 1,$/;"	e	enum:__anon1

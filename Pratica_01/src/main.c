@@ -4,7 +4,7 @@
 /*****************************************************************************
 **                INTERNAL MACRO DEFINITIONS
 *****************************************************************************/
-#define TIME													600000
+#define TIME													1000000
 #define TOGGLE          										(0x01u)
 
 #define CM_PER_GPIO1											0xAC
@@ -17,11 +17,6 @@
 #define GPIO_OE                 								0x134
 #define GPIO_CLEARDATAOUT       								0x190
 #define GPIO_SETDATAOUT         								0x194
-
-#define LED0 (1 << 21) //gpio1_21 USR0
-#define LED1 (1 << 22) //gpio1_22 USR1
-#define LED2 (1 << 23) //gpio1_23 USR2
-#define LED3 (1 << 24) //gpio1_24 USR3
 
 
 unsigned int flagBlink;
@@ -41,13 +36,13 @@ static void ledToggle();
  */
 int _main(void){
 
-	flagBlink=0;
+	flagBlink=0;	//init flag
   	
-
+	/* Configure the green LED control pin. */
   	ledInit();
   
   	while (1){
-
+    	/* Change the state of the green LED. */
     	ledToggle();
 		delay();
 		ledToggle();
@@ -92,15 +87,9 @@ void ledInit( ){
 	 *  set pin direction 
 	 *-----------------------------------------------------------------------------*/
 	val_temp = HWREG(SOC_GPIO_1_REGS+GPIO_OE);
-	val_temp &= ~(LED0 | LED1 | LED2 | LED3);//leds internos
-	val_temp &= ~(1<<28); //led externo
+	val_temp &= ~(1<<28);
 	
 	HWREG(SOC_GPIO_1_REGS+GPIO_OE) = val_temp;
-
-	HWREG(SOC_CONTROL_REGS + 0x824) = 7; // USR0 = GPIO1_21
-    HWREG(SOC_CONTROL_REGS + 0x828) = 7; // USR1 = GPIO1_22
-    HWREG(SOC_CONTROL_REGS + 0x82C) = 7; // USR2 = GPIO1_23
-    HWREG(SOC_CONTROL_REGS + 0x830) = 7; // USR3 = GPIO1_24
 		
 }/* -----  end of function ledInit  ----- */
 
@@ -112,28 +101,23 @@ void ledInit( ){
  *  Description:  
  * =====================================================================================
  */
-void ledToggle() {
-    static int state = 0;
+void ledToggle( ){
+		
+		flagBlink ^= TOGGLE;
 
-    HWREG(SOC_GPIO_1_REGS + GPIO_CLEARDATAOUT) = 
-        (1 << 28) | LED0 | LED1 | LED2 | LED3;
+		if(flagBlink)
+			HWREG(SOC_GPIO_1_REGS+GPIO_SETDATAOUT) = (1<<28);
+		else
+			HWREG(SOC_GPIO_1_REGS+GPIO_CLEARDATAOUT) = (1<<28);
 
-    switch (state) {
-        case 0: HWREG(SOC_GPIO_1_REGS + GPIO_SETDATAOUT) = (1<<28); break;
-        case 1: HWREG(SOC_GPIO_1_REGS + GPIO_SETDATAOUT) = LED0; break;
-        case 2: HWREG(SOC_GPIO_1_REGS + GPIO_SETDATAOUT) = LED1; break;
-        case 3: HWREG(SOC_GPIO_1_REGS + GPIO_SETDATAOUT) = LED2; break;
-        case 4: HWREG(SOC_GPIO_1_REGS + GPIO_SETDATAOUT) = LED3; break;
-    }
-
-    state = (state+1) %5;
-}
-/* -----  end of function ledToggle  ----- */
+}/* -----  end of function ledToggle  ----- */
 
 
 
 
-//setenv serverip 10.4.1.1
-//setenv ipaddr  10.4.1.2
-//ping 10.4.1.1
-//tftp 0x80000000 appled3.bin
+
+
+
+
+
+
