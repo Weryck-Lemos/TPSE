@@ -21,9 +21,6 @@
 #define INTC_SIR_IRQ             (*(volatile unsigned int*)0x48200040)
 #define INTC_CONTROL             (*(volatile unsigned int*)0x48200048)
 
-#define WDT_WSPR                 (*(volatile unsigned int*)0x44E35048)
-#define WDT_WWPS                 (*(volatile unsigned int*)0x44E35034)
-
 // --- UART ---
 #define UART0_THR                (*(volatile unsigned int *)(0x44E09000))
 #define UART0_RHR                (*(volatile unsigned int *)(0x44E09000))
@@ -39,18 +36,24 @@
 
 bool flag_btn1 = false, flag_btn2 = false, flag_btn3 = false;
 
-void putCh(char c){ while(!(UART0_LSR & (1<<5))); UART0_THR = c; }
-char getCh(){ while(!(UART0_LSR & (1<<0))); return UART0_RHR; }
-int putString(char *str, unsigned int len){ for(int i=0; i<len; i++) putCh(str[i]); return len; }
-
-void delay(unsigned int t){ for(volatile unsigned int i=0; i<t; i++); }
-
-void disableWdt() {
-    WDT_WSPR = 0xAAAA;
-    while (WDT_WWPS & (1 << 4));
-    WDT_WSPR = 0x5555;
-    while (WDT_WWPS & (1 << 4));
+void putCh(char c){ 
+    while(!(UART0_LSR & (1<<5))); UART0_THR = c; 
 }
+
+char getCh(){ 
+    while(!(UART0_LSR & (1<<0))); 
+    return UART0_RHR; 
+}
+
+int putString(char *str, unsigned int len){ 
+    for(int i=0; i<len; i++) putCh(str[i]); 
+    return len; 
+}
+
+void delay(unsigned int t){ 
+    for(volatile unsigned int i=0; i<t; i++); 
+}
+
 
 void gpioSetup() {
     CM_PER_GPIO1_CLKCTRL = 0x40002;
@@ -75,8 +78,13 @@ void buttonSetup() {
     GPIO1_RISINGDETECT |= (1<<BTN1) | (1<<BTN2) | (1<<BTN3);
 }
 
-void ledOn(int pin){ GPIO1_SETDATAOUT |= (1<<pin); }
-void ledOff(int pin){ GPIO1_CLEARDATAOUT |= (1<<pin); }
+void ledOn(int pin){ 
+    GPIO1_SETDATAOUT |= (1<<pin); 
+}
+
+void ledOff(int pin){ 
+    GPIO1_CLEARDATAOUT |= (1<<pin); 
+}
 
 void gpioIsrHandler() {
     unsigned int status = GPIO1_IRQSTATUS_0;
@@ -100,7 +108,6 @@ void printMenu() {
 }
 
 int main() {
-    disableWdt();
     gpioSetup();
     ledSetup();
     buttonSetup();
