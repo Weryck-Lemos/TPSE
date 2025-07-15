@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "mathutils.h": "c"
+        "mathutils.h": "c",
+        "cstdint": "c"
     }
 }

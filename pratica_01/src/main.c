@@ -114,10 +114,4 @@ void ledToggle( ){
 
 
 
-
-
-
-
-
-
-
+// setenv serverip 10.4.1.1; setenv ipaddr  10.4.1.2; ping 10.4.1.1; tftp 0x80000000 appled.bin; go 0x80000000 appled.bin

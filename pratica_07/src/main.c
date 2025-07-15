@@ -50,10 +50,65 @@ void put_ch(unsigned char c){
   UART0_THR = c;
 }
 
-unsigned char get_ch(unsigned char c){
+unsigned char get_ch(){
   while(!(UART0_LSR & (1<<0)));
 
   return (unsigned char)UART0_RHR;
+}
+////////////////////////////////////////////////////////////////////////////////
+// Função para ajustar o RTC com um novo horário
+void set_time(unsigned char h, unsigned char m, unsigned char s){
+  HOURS_REG = h;
+  MINUTES_REG = m;
+  SECONDS_REG = s;
+}
+
+// Função para imprimir o horário atual
+void print_time(void){
+  unsigned char h, m, s;
+  h = HOURS_REG;
+  m = MINUTES_REG;
+  s = SECONDS_REG;
+
+  put_ch('0' + ((h >> 4) & 0x3));  // dezena de horas
+  put_ch('0' + (h & 0xF));         // unidade de horas
+  put_ch(':');
+  put_ch('0' + ((m >> 4) & 0x7));  // dezena de minutos
+  put_ch('0' + (m & 0xF));         // unidade de minutos
+  put_ch(':');
+  put_ch('0' + ((s >> 4) & 0x7));  // dezena de segundos
+  put_ch('0' + (s & 0xF));         // unidade de segundos
+  put_ch('\r');
+}
+
+// Função para pedir o horário ao usuário via UART
+void get_time_from_user(void){
+  unsigned char h, m, s;
+  unsigned char c;
+  
+  // Pedir hora
+  put_ch('E'); put_ch('n'); put_ch('t'); put_ch('r'); put_ch('e'); put_ch(' '); put_ch('H'); put_ch('o'); put_ch('r'); put_ch('a'); put_ch(' '); put_ch(':');
+  h = get_ch() - '0';  // hora
+  h = h * 10 + (get_ch() - '0');  // hora
+  put_ch(' ');
+
+  // Pedir minutos
+  put_ch('E'); put_ch('n'); put_ch('t'); put_ch('r'); put_ch('e'); put_ch(' '); put_ch('M'); put_ch('i'); put_ch('n'); put_ch('u'); put_ch('t'); put_ch('o'); put_ch(' '); put_ch(':');
+  m = get_ch() - '0';  // minuto
+  m = m * 10 + (get_ch() - '0');  // minuto
+  put_ch(' ');
+
+  // Pedir segundos
+  put_ch('E'); put_ch('n'); put_ch('t'); put_ch('r'); put_ch('e'); put_ch(' '); put_ch('S'); put_ch('e'); put_ch('g'); put_ch('u'); put_ch('r'); put_ch('o'); put_ch(' '); put_ch(':');
+  s = get_ch() - '0';  // segundo
+  s = s * 10 + (get_ch() - '0');  // segundo
+
+  // Ajustar o RTC
+  set_time(h, m, s);
+
+  // Imprimir horário ajustado
+  put_ch('\n');
+  print_time();
 }
 ///////////////////////////////////////////////////////////////////////////////
 void rtc_setup(void)
@@ -96,80 +151,23 @@ void gpio_setup()
   GPIO1_OE &= ~(1<<21);
 }
 ///////////////////////////////////////////////////////////////////////////////
-void ledOff(void)
-{
-  GPIO1_CLEARDATAOUT = (1<<21);
-}
-///////////////////////////////////////////////////////////////////////////////
-void ledOn(void)
-{
-  GPIO1_SETDATAOUT = (1<<21);
-}
-///////////////////////////////////////////////////////////////////////////////
-void print_time(void)
-{
-  unsigned char h,m,s;
 
-  h = HOURS_REG;
-  m = MINUTES_REG;
-  s = SECONDS_REG;
- 
-  //converte de BCD para ascii
-  //hora
-  put_ch(0x30 + ((h >> 4) & 0x3)); //dezena
-  put_ch(0x30 + ((h >> 0) & 0xf)); //unidade
-  put_ch(':');
-  //minutos
-  put_ch(0x30 + ((m >> 4) & 0x7)); //dezena
-  put_ch(0x30 + ((m >> 0) & 0xf)); //unidade
-   put_ch(':');
-  //segundos
-  put_ch(0x30 + ((s >> 4) & 0x7)); //dezena
-  put_ch(0x30 + ((s >> 0) & 0xf)); //unidade
-
-  put_ch('\r');
-}
-
-int flg_led = 0;
-void rtc_irq_handler(void)
-{
-  //Pisca o led
-  ((flg_led++ & 0x1) ? ledOn() : ledOff());
-
-  //Imprime a hora
-  print_time();
-    
-}
-
-void IRQ_Handler(void)
-{
-     /* Verifica se é interrupção do RTC */
-    unsigned int irq_number = INTC_SIR_IRQ & 0x7f; 
-    if(irq_number == 75)
-    {
-      rtc_irq_handler();
-    }
-    
-    /* Reconhece a IRQ */
-    INTC_CONTROL = 1;
-
-}
-
-int main(void)
-{
-  /* Hardware setup */
+int main(void){
   gpio_setup();
   rtc_setup();
   disable_wdt();
 
+  // Envia uma mensagem inicial
   const char *hello = "Hello Interrupt2!\n\r";
   unsigned char *h = (unsigned char *)hello;
-  while(*h != 0)
-  {
+  while(*h != 0){
     put_ch(*h++);
   }
 
-  while(1);
+  // Loop principal
+  while (1){
+    get_time_from_user();  // Espera o usuário inserir o horário
+  }
 
   return 0;
 }

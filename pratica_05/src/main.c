@@ -111,7 +111,7 @@ int main() {
     gpioSetup();
     ledSetup();
     buttonSetup();
-    putString("Sistema iniciado.\r\n", 18);
+    putString("Sistema iniciado.\r\n", 19);
     printMenu();
 
     while(1) {
