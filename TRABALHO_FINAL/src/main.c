@@ -29,51 +29,61 @@
 #define WDT_WWPS                    (*(volatile unsigned int*)(0x44E35034))  
 #define WDT_WSPR                    (*(volatile unsigned int*)(0x44E35048)) 
 
-     
+    
+
+#define BTN1_BIT   (1 << 18)
+#define BTN2_BIT   (1 << 19)
+
+#define LED1_BIT   (1 << 2)    // GPIO2_2
+#define LED2_BIT   (1 << 3)    // GPIO2_3
+#define LED3_BIT   (1 << 5)    // GPIO2_5
+#define LED4_BIT   (1 << 4)    // GPIO2_4
+#define LED5_BIT   (1 << 1)    // GPIO2_1
+
+//------------------------- SETUP ----------------------------
+static void setup_leds(void) {
+    CM_PER_GPIO2_CLKCTRL |= 0x2;
+    while ((CM_PER_GPIO2_CLKCTRL & 0x3) != 0x2);
+
+    CM_PER_GPMC_C2_REGS |= 0x07;
+    CM_PER_GPMC_C3_REGS |= 0x07;
+    CM_PER_GPMC_C5_REGS |= 0x07;
+    CM_PER_GPMC_C4_REGS |= 0x07;
+    CM_PER_GPMC_C1_REGS |= 0x07;
+
+    GPIO2_OE &= ~(LED1_BIT | LED2_BIT | LED3_BIT | LED4_BIT | LED5_BIT);
+}
+
+static void setup_buttons(void) {
+    CM_PER_GPIO1_CLKCTRL |= 0x2;
+    while ((CM_PER_GPIO1_CLKCTRL & 0x3) != 0x2);
+
+    CM_PER_GPMCA2_REGS |= 0x2F;
+    CM_PER_GPMCA3_REGS |= 0x2F;
+
+    GPIO1_OE |= (BTN1_BIT | BTN2_BIT);
+    GPIO1_IRQSTATUS_SET_0 |= (BTN1_BIT) | (BTN2_BIT);
+    GPIO1_RISINGDETECT   |= (BTN1_BIT) | (BTN2_BIT);
+}
+
+void ISR_Handler(void) {
+  while (1) { }
+}
+//------------------------------------------------------------
+
+
+
+// ---------------------------WTD-----------------------------
 
 static void disable_wdt(void) {
     WDT_WSPR = 0xAAAA;
-    while (WDT_WWPS & (1 << 0));
+    while (WDT_WWPS & (1 << 4));
 
     WDT_WSPR = 0x5555;
-    while (WDT_WWPS & (1 << 0));
+    while (WDT_WWPS & (1 << 4));
 }
 
-#define BTN1_BIT   (1U << 18)
-#define BTN2_BIT   (1U << 19)
-
-#define LED1_BIT   (1U << 2)    // GPIO2_2
-#define LED2_BIT   (1U << 3)    // GPIO2_3
-#define LED3_BIT   (1U << 5)    // GPIO2_5
-#define LED4_BIT   (1U << 4)    // GPIO2_4
-#define LED5_BIT   (1U << 1)    // GPIO2_1
-
-int tam = 5;
-int idx = 0;
-int valorAtual = 0;
-int aleatorio = 0;
-static int acender[5]={0, 0, 0 ,0, 0};
-//3, 12, 7, 31, 18, 15, 26, 19, 16, 30, 2, 14, 22, 9, 17, 8
-static const int seq[]    = {3, 12, 7, 31, 18, 15, 26, 19, 16};
-static const int seq_len  = sizeof(seq)/sizeof(seq[0]);
-static int seq_idx  = 0;
-
-static const unsigned int leds_bits[5] = {
-    LED1_BIT, LED2_BIT, LED3_BIT, LED4_BIT, LED5_BIT
-};
-
-static void setup_leds(void);
-static void setup_buttons(void);
-void putCh(char c);
-char getCh(void);
-int putString(char *str, unsigned int len);
-void delay(unsigned int t);
-static int  detectar_bits(void);
-static void gerar_alvo(void);
-static void resetar(void);
-static void print_aleatorio(void);
-static void press1(void);
-static void press2(void);
+//------------------------------------------------------------
 
 
 // ------------------------ UART -----------------------------
@@ -93,6 +103,25 @@ int putString(char *str, unsigned int len){
 }
 // ---------------------------------------------------------
 
+
+
+// ------------------------ VARIÁVEIS -----------------------
+int tam = 5;
+int idx = 0;
+int valorAtual = 0;
+int resposta = 0;
+static int acender[5]={0, 0, 0 ,0, 0};
+//3, 12, 7, 31, 18, 15, 26, 19, 16, 30, 2, 14, 22, 9, 17, 8
+int seq[]    = {2, 4, 16};
+char* seq_c[]              = {"02", "04", "16"};
+int seq_len  = sizeof(seq)/sizeof(seq[0]);
+int seq_idx  = 0;
+
+static const unsigned int leds_bits[5] = {
+    LED1_BIT, LED2_BIT, LED3_BIT, LED4_BIT, LED5_BIT
+};
+
+//------------------------------------------------------------
 void delay(unsigned int t){ 
     for (volatile unsigned int i = 0; i < t; i++);
 }
@@ -105,41 +134,14 @@ static int detectar_bits(void) {
     return b;
 }
 
-static int utoa_dec(unsigned v, char *out) {
-    char buf[11];
-    int i = 0;
-    if (v == 0) {
-        buf[i++] = '0';
-    } else {
-        while (v) {
-            buf[i++] = '0' + (v % 10);
-            v /= 10;
-        }
-    }
-    for (int j = 0; j < i; j++) {
-        out[j] = buf[i - 1 - j];
-    }
-    out[i] = '\0';
-    return i;
-}
-
-static void print_aleatorio(void) {
-    char numbuf[12];
-    int  len;
-    putString("Numero: ", 8);
-
-    len = utoa_dec(aleatorio, numbuf);
-    putString(numbuf, len);
-    putString("\r\n", 2);
-}
-
 static void gerar_alvo(void) {
-    aleatorio = seq[seq_idx];
-    seq_idx = seq_idx + 1;
+    resposta = seq[seq_idx];
+    putString("Numero: ", 8);
+    putString(seq_c[seq_idx], 2);
+    putString("\r\n", 2);
+    seq_idx++;
     if (seq_idx >= seq_len) seq_idx = 0;
-    print_aleatorio();
 }
-
 
 
 static void resetar(void) {
@@ -155,7 +157,7 @@ static void resetar(void) {
             GPIO2_CLEARDATAOUT = leds_bits[i];
         delay(20000000);
     }
-    idx = -1;
+    idx = 0;
 }
 
 
@@ -184,42 +186,15 @@ static void press2(void) {
         GPIO2_CLEARDATAOUT = leds_bits[idx];
 }
 
-static void setup_leds(void) {
-    CM_PER_GPIO2_CLKCTRL |= 0x2;
-    while ((CM_PER_GPIO2_CLKCTRL & 0x3) != 0x2);
 
-    CM_PER_GPMC_C2_REGS |= 0x07;
-    CM_PER_GPMC_C3_REGS |= 0x07;
-    CM_PER_GPMC_C5_REGS |= 0x07;
-    CM_PER_GPMC_C4_REGS |= 0x07;
-    CM_PER_GPMC_C1_REGS |= 0x07;
-
-    GPIO2_OE &= ~(LED1_BIT | LED2_BIT | LED3_BIT | LED4_BIT | LED5_BIT);
-}
-
-static void setup_buttons(void) {
-    CM_PER_GPIO1_CLKCTRL |= 0x2;
-    while ((CM_PER_GPIO1_CLKCTRL & 0x3) != 0x2);
-
-    CM_PER_GPMCA2_REGS |= 0x2F;
-    CM_PER_GPMCA3_REGS |= 0x2F;
-
-    GPIO1_OE |= (BTN1_BIT | BTN2_BIT);
-    GPIO1_IRQSTATUS_SET_0 |= (BTN1_BIT | BTN2_BIT);
-    GPIO1_RISINGDETECT   |= (BTN1_BIT | BTN2_BIT);
-}
-
-void ISR_Handler(void) {
-  while (1) { }
-}
 
 /////////////////////////////////////////////////////////////////////////////
 ///////////////////////////TESTAR COMPONENTES////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
-/*
+
 static void test(void) {
     unsigned int all = LED1_BIT|LED2_BIT|LED3_BIT|LED4_BIT| LED5_BIT;
-    for (int cycle = 0; cycle < 5; cycle++) {
+    for (int cycle = 0; cycle < 1; cycle++) {
         GPIO2_SETDATAOUT = all;
         delay(20000000); 
         GPIO2_CLEARDATAOUT = all;
@@ -228,24 +203,24 @@ static void test(void) {
 }
 
 static void testB1(void) {
-    while (GPIO1_DATAIN & BTN1_BIT);
+    while (!(GPIO1_DATAIN & BTN1_BIT));
     delay(200000);
-
+    test();
     putString("botão 1\r\n", 9);
 
-    while (!(GPIO1_DATAIN & BTN1_BIT));
+    while ((GPIO1_DATAIN & BTN1_BIT));
     delay(200000);
 }
 
 static void testB2(void) {
-    while (GPIO1_DATAIN & BTN2_BIT);
-    delay(200000);
-
-    putString("botão 2\r\n", 9);
-
     while (!(GPIO1_DATAIN & BTN2_BIT));
     delay(200000);
-}*/
+    test();
+    putString("botão 2\r\n", 9);
+
+    while ((GPIO1_DATAIN & BTN2_BIT));
+    delay(200000);
+}
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
@@ -254,20 +229,31 @@ int main(void) {
     disable_wdt();
     setup_leds();
     setup_buttons();
-    gerar_alvo();
 
+    while (1) {
+        testB1();
+        testB2();
+    }
+
+    gerar_alvo();
+    
+    
+    
+    
     while (1) {
         if ((GPIO1_DATAIN & BTN1_BIT) != 0) press1();
         if ((GPIO1_DATAIN & BTN2_BIT) != 0) press2();
 
         valorAtual = detectar_bits();
-        if (valorAtual == aleatorio) {
+        if (valorAtual == resposta) {
             resetar();
             gerar_alvo();
         }
 
         delay(10000);
     }
+    
+    
     return 0;
 }
 
